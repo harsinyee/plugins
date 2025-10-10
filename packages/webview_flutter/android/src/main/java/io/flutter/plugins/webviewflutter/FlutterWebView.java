@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.view.View;
+import android.webkit.DownloadListener;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebStorage;
@@ -24,6 +25,7 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.platform.PlatformView;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -78,6 +80,19 @@ public class FlutterWebView implements PlatformView, MethodCallHandler {
       flutterWebViewClient.onLoadingProgress(progress);
     }
   }
+//  public MethodChannel channel;
+  class DownloadStartListener implements DownloadListener {
+    @Override
+    public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimetype, long contentLength) {
+      Map<String, Object> obj = new HashMap<>();
+      obj.put("url", url);
+//      channel.invokeMethod("onDownloadStart", obj);
+//      flutterWebViewClient.shouldOverrideUrlLoading(webView, url);
+      Map<String, Object> args = new HashMap<>();
+      args.put("url", url);
+      methodChannel.invokeMethod("onPageStarted", args);
+    }
+  }
 
   @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
   @SuppressWarnings("unchecked")
@@ -109,7 +124,7 @@ public class FlutterWebView implements PlatformView, MethodCallHandler {
     // Multi windows is set with FlutterWebChromeClient by default to handle internal bug: b/159892679.
     webView.getSettings().setSupportMultipleWindows(true);
     webView.setWebChromeClient(new FlutterWebChromeClient());
-
+    webView.setDownloadListener(new DownloadStartListener());
     methodChannel = new MethodChannel(messenger, "plugins.flutter.io/webview_" + id);
     methodChannel.setMethodCallHandler(this);
 
@@ -376,7 +391,6 @@ public class FlutterWebView implements PlatformView, MethodCallHandler {
 
           final WebViewClient webViewClient =
               flutterWebViewClient.createWebViewClient(hasNavigationDelegate);
-
           webView.setWebViewClient(webViewClient);
           break;
         case "debuggingEnabled":
